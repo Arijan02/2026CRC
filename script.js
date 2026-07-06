@@ -65,12 +65,10 @@ onValue(tournamentRef, (snapshot) => {
   const val = snapshot.val();
   syncBanner.hidden = true;
   if (editingCount > 0) {
-    state = val;
+    // Do NOT touch `state` while a field is focused: reassigning it here would
+    // orphan the `group`/`match` object references captured by input handlers'
+    // closures, silently discarding every keystroke typed after this point.
     pendingRemoteState = val;
-    if (state && state.groups) {
-      state.groups.forEach((_, gIdx) => renderStandingsFor(gIdx));
-      renderThirdPlaceTable();
-    }
     return;
   }
   applyRemoteState(val);
