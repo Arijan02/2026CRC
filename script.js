@@ -147,7 +147,7 @@ function computeStandings(group) {
     else { h.d++; a.d++; h.pts += 1; a.pts += 1; }
   });
   stats.forEach(s => s.gd = s.gf - s.ga);
-  stats.sort((x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.name.localeCompare(y.name));
+  stats.sort((x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.idx - y.idx);
   return stats;
 }
 
@@ -159,7 +159,7 @@ function computeThirdPlaceRanking() {
     if (!e) return null;
     return { group: gIdx, groupName: group.name, name: e.name, played: e.played, w: e.w, d: e.d, l: e.l, gf: e.gf, ga: e.ga, gd: e.gd, pts: e.pts };
   }).filter(Boolean);
-  entries.sort((x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.name.localeCompare(y.name));
+  entries.sort((x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.group - y.group);
   return entries;
 }
 
