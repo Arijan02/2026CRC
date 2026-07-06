@@ -611,9 +611,9 @@ function renderNamesEditor() {
       input.value = teamName;
       input.addEventListener("input", () => {
         group.teams[tIdx] = input.value;
+        saveState();
         clearTimeout(nameEditDebounceTimer);
         nameEditDebounceTimer = setTimeout(() => {
-          saveState();
           renderGroups();
           renderThirdPlaceTable();
           if (state.knockout) renderKnockoutTab();
