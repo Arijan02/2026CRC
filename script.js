@@ -38,9 +38,9 @@ function saveState() {
 }
 
 // Suppress remote-triggered re-renders while someone is actively typing in a
-// score or name field, so another player's update can't yank focus away mid-keystroke.
+// score or name field, so another player's update can't yank focus away mid-keystroke
+// or roll back a not-yet-confirmed keystroke to an older, already-superseded snapshot.
 let editingCount = 0;
-let pendingRemoteState = null;
 
 function isTrackedInput(el) {
   return !!el && el.tagName === "INPUT" && (el.classList.contains("score-input") || el.type === "text");
@@ -53,11 +53,10 @@ document.addEventListener("focusout", (e) => {
   if (!isTrackedInput(e.target)) return;
   setTimeout(() => {
     editingCount = Math.max(0, editingCount - 1);
-    if (editingCount === 0 && pendingRemoteState !== null) {
-      const toApply = pendingRemoteState;
-      pendingRemoteState = null;
-      applyRemoteState(toApply);
-    }
+    // Re-render from the current (already correct, locally-updated) state right away —
+    // don't wait for or apply a Firebase echo here, since the confirmation for the
+    // last keystroke may still be in flight and would otherwise roll the edit back.
+    if (editingCount === 0 && state && state.groups) renderCurrentTab();
   }, 0);
 });
 
@@ -65,16 +64,24 @@ onValue(tournamentRef, (snapshot) => {
   const val = snapshot.val();
   syncBanner.hidden = true;
   if (editingCount > 0) {
-    // Do NOT touch `state` while a field is focused: reassigning it here would
+    // Ignore entirely while a field is focused: reassigning `state` here would
     // orphan the `group`/`match` object references captured by input handlers'
-    // closures, silently discarding every keystroke typed after this point.
-    pendingRemoteState = val;
+    // closures, silently discarding every keystroke typed after this point. Once
+    // editing stops, the next onValue firing (e.g. the echo of the last keystroke)
+    // will naturally sync everything correctly via the branch below.
     return;
   }
   applyRemoteState(val);
 }, () => {
   showSyncError("Kon geen verbinding maken met de gedeelde database. Controleer de Firebase Realtime Database-regels (lees/schrijfrechten) of je internetverbinding.");
 });
+
+function renderCurrentTab() {
+  renderGroups();
+  const activeTab = document.querySelector(".tab-btn.active")?.dataset.tab || "poules";
+  if (activeTab === "knockout") renderKnockoutTab();
+  else if (activeTab === "instellingen") { renderNamesEditor(); renderKnockoutSettings(); }
+}
 
 function applyRemoteState(val) {
   if (val && val.groups) {
@@ -83,10 +90,7 @@ function applyRemoteState(val) {
     setupScreen.hidden = true;
     tabsNav.hidden = false;
     if (wasOnSetupScreen) document.getElementById("poules-tab").hidden = false;
-    renderGroups();
-    const activeTab = document.querySelector(".tab-btn.active")?.dataset.tab || "poules";
-    if (activeTab === "knockout") renderKnockoutTab();
-    else if (activeTab === "instellingen") { renderNamesEditor(); renderKnockoutSettings(); }
+    renderCurrentTab();
   } else {
     state = null;
     setupScreen.hidden = false;
