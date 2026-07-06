@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE 2026 CALVIJN REUNION CUP</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>🏆 THE 2026 CALVIJN REUNION CUP</h1>
+    <nav class="tabs" id="tabs" hidden>
+      <button class="tab-btn active" data-tab="poules">Poules</button>
+      <button class="tab-btn" data-tab="knockout">Knock-out</button>
+      <button class="tab-btn" data-tab="instellingen">Instellingen</button>
+    </nav>
+  </header>
+
+  <main id="app">
+
+    <section id="setup-screen" class="setup-screen">
+      <div class="setup-card">
+        <h2>Nieuw toernooi opzetten</h2>
+        <p class="hint">Je kan de landennamen later altijd nog aanpassen bij "Instellingen".</p>
+        <form id="setup-form">
+          <label>
+            Aantal poules
+            <input type="number" id="numGroups" min="1" max="16" value="12" required>
+          </label>
+          <label>
+            Teams per poule
+            <input type="number" id="teamsPerGroup" min="2" max="8" value="4" required>
+          </label>
+          <label>
+            Aantal dat doorgaat per poule (naar knock-out)
+            <input type="number" id="numAdvance" min="1" max="4" value="2" required>
+          </label>
+          <label>
+            Beste nummers 3 die ook doorgaan (0 = geen)
+            <input type="number" id="bestThirds" min="0" max="16" step="2" value="8">
+          </label>
+          <button type="submit" class="primary-btn">Toernooi aanmaken</button>
+        </form>
+        <p class="hint small">Tip: het WK 2026-format is 12 poules van 4 teams (2 per poule door + 8 beste nummers 3). Het klassieke format (WK 2022) is 8 poules van 4, zonder nummers 3 (zet dat veld dan op 0).</p>
+      </div>
+    </section>
+
+    <section id="poules-tab" class="tab-content" hidden>
+      <div id="groups-container" class="groups-grid"></div>
+      <div id="third-place-card" class="group-card third-place-card" hidden>
+        <h3>Beste nummers 3</h3>
+        <div id="third-place-standings"></div>
+      </div>
+    </section>
+
+    <section id="knockout-tab" class="tab-content" hidden>
+      <div id="knockout-controls"></div>
+      <div id="knockout-container" class="knockout-container"></div>
+    </section>
+
+    <section id="instellingen-tab" class="tab-content" hidden>
+      <div class="settings-card">
+        <h2>Landennamen aanpassen</h2>
+        <p class="hint">Wijzigingen slaan direct op en werken overal door (poules en knock-out).</p>
+        <div id="names-editor" class="names-editor"></div>
+      </div>
+
+      <div class="settings-card">
+        <h2>Knock-outfase</h2>
+        <div id="knockout-settings"></div>
+      </div>
+
+      <div class="settings-card">
+        <h2>Back-up</h2>
+        <div class="button-row">
+          <button id="export-btn" class="secondary-btn">Exporteren (JSON)</button>
+          <label class="secondary-btn file-label">
+            Importeren (JSON)
+            <input type="file" id="import-input" accept="application/json" hidden>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-card danger">
+        <h2>Toernooi resetten</h2>
+        <p class="hint">Verwijdert alle poules, scores en de knock-outfase. Dit kan niet ongedaan gemaakt worden.</p>
+        <button id="reset-btn" class="danger-btn">Nieuw toernooi starten</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
