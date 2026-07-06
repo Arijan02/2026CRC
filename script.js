@@ -592,6 +592,8 @@ function placeholderLabel(ref) {
 
 // ---------- Instellingen ----------
 
+let nameEditDebounceTimer = null;
+
 function renderNamesEditor() {
   namesEditor.innerHTML = "";
   state.groups.forEach((group, gIdx) => {
@@ -609,10 +611,13 @@ function renderNamesEditor() {
       input.value = teamName;
       input.addEventListener("input", () => {
         group.teams[tIdx] = input.value;
-        saveState();
-        renderGroups();
-        renderThirdPlaceTable();
-        if (state.knockout) renderKnockoutTab();
+        clearTimeout(nameEditDebounceTimer);
+        nameEditDebounceTimer = setTimeout(() => {
+          saveState();
+          renderGroups();
+          renderThirdPlaceTable();
+          if (state.knockout) renderKnockoutTab();
+        }, 500);
       });
       inputsWrap.appendChild(input);
     });
