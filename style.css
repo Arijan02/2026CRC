@@ -367,3 +367,11 @@ table.standings tr.qualifies td.team-name {
   padding: 8px 12px;
   border-radius: 8px;
 }
+
+.sync-banner {
+  background: #fbe9e8;
+  color: var(--red);
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+}

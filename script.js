@@ -1,6 +1,21 @@
-const STORAGE_KEY = "wkScoresData";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
-let state = loadState();
+const firebaseConfig = {
+  apiKey: "AIzaSyBnIM2boJXgfToWWg7vDcjAKfLarU1q6mo",
+  authDomain: "crc-2d577.firebaseapp.com",
+  databaseURL: "https://crc-2d577-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "crc-2d577",
+  storageBucket: "crc-2d577.firebasestorage.app",
+  messagingSenderId: "166833614716",
+  appId: "1:166833614716:web:ace44b9ba15fc9eb007ef9"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+const tournamentRef = ref(db, "tournament");
+
+let state = null;
 
 const setupScreen = document.getElementById("setup-screen");
 const tabsNav = document.getElementById("tabs");
@@ -9,18 +24,76 @@ const knockoutContainer = document.getElementById("knockout-container");
 const knockoutControls = document.getElementById("knockout-controls");
 const namesEditor = document.getElementById("names-editor");
 const knockoutSettings = document.getElementById("knockout-settings");
+const syncBanner = document.getElementById("sync-banner");
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) {
-    return null;
-  }
+function showSyncError(message) {
+  syncBanner.textContent = message;
+  syncBanner.hidden = false;
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  set(tournamentRef, state).catch(() => {
+    showSyncError("Kon de wijziging niet opslaan naar de gedeelde database. Controleer de Firebase Realtime Database-regels (lees/schrijfrechten) of je internetverbinding.");
+  });
+}
+
+// Suppress remote-triggered re-renders while someone is actively typing in a
+// score or name field, so another player's update can't yank focus away mid-keystroke.
+let editingCount = 0;
+let pendingRemoteState = null;
+
+function isTrackedInput(el) {
+  return !!el && el.tagName === "INPUT" && (el.classList.contains("score-input") || el.type === "text");
+}
+
+document.addEventListener("focusin", (e) => {
+  if (isTrackedInput(e.target)) editingCount++;
+});
+document.addEventListener("focusout", (e) => {
+  if (!isTrackedInput(e.target)) return;
+  setTimeout(() => {
+    editingCount = Math.max(0, editingCount - 1);
+    if (editingCount === 0 && pendingRemoteState !== null) {
+      const toApply = pendingRemoteState;
+      pendingRemoteState = null;
+      applyRemoteState(toApply);
+    }
+  }, 0);
+});
+
+onValue(tournamentRef, (snapshot) => {
+  const val = snapshot.val();
+  syncBanner.hidden = true;
+  if (editingCount > 0) {
+    state = val;
+    pendingRemoteState = val;
+    if (state && state.groups) {
+      state.groups.forEach((_, gIdx) => renderStandingsFor(gIdx));
+      renderThirdPlaceTable();
+    }
+    return;
+  }
+  applyRemoteState(val);
+}, () => {
+  showSyncError("Kon geen verbinding maken met de gedeelde database. Controleer de Firebase Realtime Database-regels (lees/schrijfrechten) of je internetverbinding.");
+});
+
+function applyRemoteState(val) {
+  if (val && val.groups) {
+    const wasOnSetupScreen = !setupScreen.hidden;
+    state = val;
+    setupScreen.hidden = true;
+    tabsNav.hidden = false;
+    if (wasOnSetupScreen) document.getElementById("poules-tab").hidden = false;
+    renderGroups();
+    const activeTab = document.querySelector(".tab-btn.active")?.dataset.tab || "poules";
+    if (activeTab === "knockout") renderKnockoutTab();
+    else if (activeTab === "instellingen") { renderNamesEditor(); renderKnockoutSettings(); }
+  } else {
+    state = null;
+    setupScreen.hidden = false;
+    tabsNav.hidden = true;
+  }
 }
 
 // ---------- Tournament creation ----------
@@ -633,7 +706,6 @@ document.getElementById("setup-form").addEventListener("submit", (e) => {
   }
   state = buildTournament(numGroups, teamsPerGroup, numAdvance, bestThirds);
   saveState();
-  showApp();
 });
 
 document.getElementById("export-btn").addEventListener("click", () => {
@@ -656,7 +728,6 @@ document.getElementById("import-input").addEventListener("change", (e) => {
       if (!parsed.groups) throw new Error("invalid");
       state = parsed;
       saveState();
-      showApp();
     } catch (err) {
       alert("Kon dit bestand niet importeren. Is het een geldige export?");
     }
@@ -666,25 +737,11 @@ document.getElementById("import-input").addEventListener("change", (e) => {
 });
 
 document.getElementById("reset-btn").addEventListener("click", () => {
-  if (confirm("Weet je zeker dat je een nieuw toernooi wilt starten? Alle huidige data gaat verloren.")) {
-    state = null;
-    localStorage.removeItem(STORAGE_KEY);
-    location.reload();
+  if (confirm("Weet je zeker dat je een nieuw toernooi wilt starten? Dit wist het toernooi voor iedereen die de link gebruikt. Alle huidige data gaat verloren.")) {
+    set(tournamentRef, null);
   }
 });
 
 // ---------- Boot ----------
 
-function showApp() {
-  setupScreen.hidden = true;
-  tabsNav.hidden = false;
-  document.getElementById("poules-tab").hidden = false;
-  renderGroups();
-}
-
 setupTabs();
-if (state && state.groups) {
-  showApp();
-} else {
-  setupScreen.hidden = false;
-}
